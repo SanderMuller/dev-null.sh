@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\ThrottleCommits;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,4 +66,10 @@ it('limits each address to 60 public api requests a minute', function (): void {
         ->and($limit->key)->toBe('203.0.113.7')
         ->and($limit->maxAttempts)->toBe(60)
         ->and($limit->decaySeconds)->toBe(60);
+});
+
+it('serves the dev environment with artisan serve, as no octane server is installed', function (): void {
+    $server = collect(DevCommands::commands())->firstWhere('name', 'server');
+
+    expect($server['command'] ?? null)->toBe('php artisan serve');
 });

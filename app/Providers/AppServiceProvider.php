@@ -8,6 +8,7 @@ use App\Contracts\Services\DnsResolver;
 use App\Models\User;
 use App\Services\DnsResolvers\SystemDnsResolver;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,9 @@ final class AppServiceProvider extends ServiceProvider
         $this->bootRateLimitingDefaults();
 
         $this->bootExceptionHandling();
+
+        // Octane replaces this with `octane:start --watch`, which needs a server binary and chokidar that this app does not install.
+        DevCommands::artisan('serve', 'server');
     }
 
     private function bootExceptionHandling(): void
