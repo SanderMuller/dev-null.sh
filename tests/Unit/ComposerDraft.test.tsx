@@ -150,7 +150,7 @@ test('preserves restored images and link cards and allows scheduling them', () =
         fields.find(
             (element) => element.props['data-test'] === 'add-poll-button',
         )!.props.disabled,
-        true,
+        false,
     );
     assert.equal(
         fields.filter((element) => element.type === LinkCardPicker).length,
@@ -172,7 +172,7 @@ test('preserves restored images and link cards and allows scheduling them', () =
     }
 });
 
-test('removing restored images enables polls and successful posting resets the poll', () => {
+test('a poll keeps images, paste and drop available and successful posting resets the poll', () => {
     draft.images = [image];
     draft.descriptions = ['A restored screenshot'];
     let view = render();
@@ -202,7 +202,7 @@ test('removing restored images enables polls and successful posting resets the p
         assert.equal(
             view.fields.find((element) => element.type === ImagePickerButton)!
                 .props.disabled,
-            true,
+            false,
         );
         assert.equal(
             view.fields.find(
@@ -213,12 +213,12 @@ test('removing restored images enables polls and successful posting resets the p
         const textarea = view.fields.find(
             (element) => element.type === MentionTextarea,
         )!;
-        assert.equal(textarea.props.onPaste, undefined);
+        assert.notEqual(textarea.props.onPaste, undefined);
         assert.equal(
             view.fields.some(
                 (element) => element.props.onDragEnter !== undefined,
             ),
-            false,
+            true,
         );
 
         (editor.props.onChange as (poll: unknown) => void)({
@@ -254,6 +254,48 @@ test('removing restored images enables polls and successful posting resets the p
             )!.props.disabled,
             false,
         );
+    } finally {
+        vi.unstubAllGlobals();
+    }
+});
+
+test('a poll with images still needs a question', () => {
+    draft.images = [image];
+    draft.body = '';
+    let view = render();
+    const submit = () =>
+        view.fields.find(
+            (element) => element.props['data-test'] === 'create-commit-button',
+        )!;
+    assert.equal(submit().props.disabled, false);
+
+    vi.stubGlobal('requestAnimationFrame', vi.fn());
+    try {
+        (
+            view.fields.find(
+                (element) => element.props['data-test'] === 'add-poll-button',
+            )!.props.onClick as () => void
+        )();
+        view = render();
+        (
+            view.fields.find((element) => element.type === PollEditor)!.props
+                .onChange as (poll: unknown) => void
+        )({ options: ['Left', 'Right'], duration: 1440 });
+        view = render();
+        assert.equal(submit().props.disabled, true);
+
+        draft.body = 'Which desk setup?';
+        view = render();
+        assert.equal(submit().props.disabled, false);
+        const data = {
+            body: draft.body,
+            poll: { options: ['Left', 'Right'], duration: 1440 },
+        };
+        assert.deepEqual(view.form.props.transform(data), {
+            ...data,
+            images: [image],
+            image_descriptions: [],
+        });
     } finally {
         vi.unstubAllGlobals();
     }

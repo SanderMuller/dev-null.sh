@@ -165,21 +165,41 @@ it('may not attach a poll to a reply', function (): void {
     expect($parent->replies()->count())->toBe(0);
 });
 
-it('may not attach a poll to a commit with images', function (): void {
+it('may attach a poll and images to the same commit', function (): void {
+    Storage::fake();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->fromRoute('log.show', Log::Following)
+        ->post(route('commit.store'), [
+            'body' => 'Which desk setup?',
+            'images' => [UploadedFile::fake()->image('left.png', 10, 10), UploadedFile::fake()->image('right.png', 10, 10)],
+            'poll' => ['options' => ['Left', 'Right'], 'duration' => 1440],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirectToRoute('log.show', Log::Following);
+
+    $commit = $user->commits()->sole();
+
+    expect($commit->images)->toHaveCount(2)
+        ->and($commit->poll->options->pluck('label')->all())->toBe(['Left', 'Right']);
+});
+
+it('requires a question for a poll with images', function (?string $body): void {
     Storage::fake();
 
     $this->actingAs(User::factory()->create())
         ->fromRoute('log.show', Log::Following)
         ->post(route('commit.store'), [
-            'body' => 'Tabs or spaces?',
+            'body' => $body,
             'images' => [UploadedFile::fake()->image('desk.png', 10, 10)],
             'poll' => ['options' => ['Tabs', 'Spaces'], 'duration' => 1440],
         ])
-        ->assertSessionHasErrors('poll');
+        ->assertSessionHasErrors('body');
 
     expect(Commit::query()->count())->toBe(0)
         ->and(Storage::allFiles())->toBeEmpty();
-});
+})->with(['missing' => null, 'too short' => 'ab']);
 
 it('highlights code in the question of a poll like in any commit', function (): void {
     Poll::factory()->for(Commit::factory()->state(['body' => 'Do you still run `composer dump`?']))->withOptions('Yes', 'No')->create();

@@ -31,6 +31,16 @@ final class CreateCommitRequest extends FormRequest
     public const array BODY_WITH_IMAGES_RULES = ['nullable', 'string', 'max:'.Commit::MAX_BODY_LENGTH];
 
     /**
+     * The body of a poll is its question, so a poll needs a full body even when images come with it.
+     *
+     * @return list<string>
+     */
+    public static function bodyRules(FormRequest $request): array
+    {
+        return $request->hasFile('images') && ! $request->filled('poll') ? self::BODY_WITH_IMAGES_RULES : self::BODY_RULES;
+    }
+
+    /**
      * Blank lines are collapsed before the body is measured, by every request that takes a body with BODY_RULES.
      */
     public static function normalizeBody(FormRequest $request): void
@@ -48,7 +58,7 @@ final class CreateCommitRequest extends FormRequest
     public static function attachmentRules(): array
     {
         return [
-            'poll' => ['nullable', 'array:options,duration', 'prohibits:parent_id,images'],
+            'poll' => ['nullable', 'array:options,duration', 'prohibits:parent_id'],
             'poll.options' => ['required_with:poll', 'list', 'min:'.NewPoll::MinOptions, 'max:'.NewPoll::MaxOptions],
             'poll.options.*' => ['required', 'string', 'max:'.NewPoll::MaxOptionLength, 'distinct:ignore_case'],
             'poll.duration' => ['required_with:poll', Rule::enum(PollDuration::class)],
@@ -81,7 +91,7 @@ final class CreateCommitRequest extends FormRequest
         $body = $this->input('body');
 
         return [
-            'body' => $this->hasFile('images') ? self::BODY_WITH_IMAGES_RULES : self::BODY_RULES,
+            'body' => self::bodyRules($this),
             'quoted_commit_id' => ['nullable', 'uuid', 'prohibits:parent_id', new VisibleCommit($user, 'That commit is no longer available to quote.')],
             'link_preview_url' => ['nullable', 'string', Rule::in(is_string($body) ? resolve(Urls::class)->all($body) : [])],
             ...self::attachmentRules(),

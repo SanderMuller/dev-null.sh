@@ -95,6 +95,24 @@ it('erases the stored images when the scheduled commit fails to save', function 
         ->and(Storage::disk()->allFiles())->toBe([]);
 });
 
+it('schedules a poll with images and attaches both at the due time', function (): void {
+    Storage::fake();
+    $user = User::factory()->create();
+    $this->actingAs($user)->post(route('scheduled-commit.store'), [
+        'body' => 'Which desk setup?',
+        'scheduled_at' => now()->addHour()->toIso8601String(),
+        'images' => [UploadedFile::fake()->image('left.png', 300, 200)],
+        'poll' => ['options' => ['Left', 'Right'], 'duration' => 1440],
+    ])->assertSessionHasNoErrors();
+
+    $this->travel(1)->hour();
+    $this->artisan('commits:submit-scheduled')->assertSuccessful();
+
+    $commit = Commit::query()->sole();
+    expect($commit->images)->toHaveCount(1)
+        ->and($commit->poll->options()->orderBy('position')->pluck('label')->all())->toBe(['Left', 'Right']);
+});
+
 it('schedules images without a body', function (): void {
     Storage::fake();
     $user = User::factory()->create();
@@ -174,7 +192,7 @@ it('rejects invalid times and bodies', function (array $payload, string $field):
     'whitespace' => [['body' => '    '], 'body'],
     'too long' => [['body' => str_repeat('a', 4001)], 'body'],
     'poll with one option' => [['poll' => ['options' => ['Tabs'], 'duration' => 1440]], 'poll.options'],
-    'poll with images' => [['poll' => ['options' => ['Tabs', 'Spaces'], 'duration' => 1440], 'images' => [UploadedFile::fake()->image('a.png')]], 'poll'],
+    'poll with images and no question' => [['body' => null, 'poll' => ['options' => ['Tabs', 'Spaces'], 'duration' => 1440], 'images' => [UploadedFile::fake()->image('a.png')]], 'body'],
     'too many images' => [['images' => array_map(fn (int $i): UploadedFile => UploadedFile::fake()->image($i.'.png'), range(1, 4))], 'images'],
     'link card not in the body' => [['link_preview_url' => 'https://example.com/elsewhere'], 'link_preview_url'],
     'svg image' => [['images' => [UploadedFile::fake()->create('a.svg', 1, 'image/svg+xml')]], 'images.0'],

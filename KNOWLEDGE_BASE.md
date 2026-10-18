@@ -140,7 +140,7 @@ Sources: [stash hook](resources/js/hooks/use-stash.ts), [image storage](resource
 
 ### Images and descriptions
 
-Attach up to **three JPEG, PNG, or WebP images** to a commit or reply. Each image can be at most **10 MB** and **6,000 pixels in either dimension**. Add an image description of up to **1,000 characters** for accessibility. Images can be posted without accompanying text. Image attachments and a poll cannot be combined in the same commit. Open an attached photo to view it in the photo viewer and move through the commit's images.
+Attach up to **three JPEG, PNG, or WebP images** to a commit or reply. Each image can be at most **10 MB** and **6,000 pixels in either dimension**. Add an image description of up to **1,000 characters** for accessibility. Images can be posted without accompanying text, unless the commit also has a poll, since the text is the poll's question. Open an attached photo to view it in the photo viewer and move through the commit's images.
 
 Sources: [image picker](resources/js/components/commit-image-picker.tsx), [image limits](app/Actions/CreateCommitImages.php), [attachment validation](app/Http/Requests/CreateCommitRequest.php), [photo controller](app/Http/Controllers/CommitPhotoController.php).
 
@@ -170,7 +170,7 @@ Sources: [quote validation](app/Http/Requests/CreateCommitRequest.php), [quoted 
 
 ### Polls and voting
 
-Add a poll to a top-level commit with **two to four distinct options**, each up to **50 characters**, and a duration of **one hour, one day, three days, or seven days**. Polls cannot accompany images or be added to replies. Voting opens when the commit is approved, so time spent pending does not consume the voting period.
+Add a poll to a top-level commit with **two to four distinct options**, each up to **50 characters**, and a duration of **one hour, one day, three days, or seven days**. A poll can go together with images, but it cannot be added to a reply. Voting opens when the commit is approved, so time spent pending does not consume the voting period.
 
 Signed-in readers can choose one option and vote once while an approved, visible poll is open. The author cannot vote in their own poll. Results are visible to the author and people who have voted, and to everyone once the poll closes. Other people's individual votes are not revealed.
 
@@ -178,7 +178,7 @@ Sources: [poll editor](resources/js/components/poll-editor.tsx), [poll results](
 
 ### Scheduled commits
 
-Use the composer's scheduling control to submit a top-level commit later. Pick a future time within **30 days**; you can have at most **10 outstanding scheduled commits**. Scheduled posts can carry images or a poll under the normal attachment rules, but replies cannot be scheduled. The scheduled-commits page is private to you and lets you inspect or cancel queued posts.
+Use the composer's scheduling control to submit a top-level commit later. Pick a future time within **30 days**; you can have at most **10 outstanding scheduled commits**. Scheduled posts can carry images, a poll, or both under the normal attachment rules, but replies cannot be scheduled. The scheduled-commits page is private to you and lets you inspect or cancel queued posts.
 
 The scheduler checks due posts every minute. Scheduling submits the post for the normal publishing and moderation flow; it is not a promise that an approved public post will appear at the exact second selected. To change a queued post, cancel it and schedule a replacement.
 

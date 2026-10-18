@@ -125,7 +125,9 @@ function CommitComposerBody({
         setIsScheduling,
     } = schedule;
     const hasImages = attachments.images.length > 0;
-    const isFilled = hasImages || characterCount(body.trim()) >= minBodyLength;
+    const isFilled =
+        (hasImages && poll === null) ||
+        characterCount(body.trim()) >= minBodyLength;
     const error = errors.body ?? errors.link_preview_url;
     const scheduleError =
         errors.scheduled_at ??
@@ -137,10 +139,7 @@ function CommitComposerBody({
     const isIssue = issue.command !== null;
 
     return (
-        <div
-            className="relative flex"
-            {...(poll === null ? attachments.dropzone : {})}
-        >
+        <div className="relative flex" {...attachments.dropzone}>
             {attachments.isDraggingFiles && (
                 <ImageDropOverlay className="inset-2" />
             )}
@@ -178,9 +177,7 @@ function CommitComposerBody({
                             rows={1}
                             value={body}
                             onValueChange={issue.change}
-                            onPaste={
-                                poll === null ? attachments.onPaste : undefined
-                            }
+                            onPaste={attachments.onPaste}
                             onKeyDown={(event) =>
                                 preview.handleShortcut(event) ||
                                 onKeyDown(event)
@@ -332,25 +329,17 @@ function CommitComposerBody({
                                 <>
                                     <ImagePickerButton
                                         count={attachments.images.length}
-                                        disabled={processing || poll !== null}
+                                        disabled={processing}
                                         onPick={attachments.attach}
                                         className="-ml-2"
                                     />
-                                    <ActionTooltip
-                                        label={
-                                            hasImages
-                                                ? 'A commit can have images or a poll, not both'
-                                                : 'Add poll'
-                                        }
-                                    >
+                                    <ActionTooltip label="Add poll">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             disabled={
-                                                processing ||
-                                                poll !== null ||
-                                                hasImages
+                                                processing || poll !== null
                                             }
                                             onClick={() => {
                                                 setPoll(emptyPollDraft);
@@ -502,7 +491,8 @@ export function CommitComposer({
 
     const hasImages = attachments.images.length > 0;
     const isCommittable =
-        (hasImages || characterCount(body.trim()) >= minBodyLength) &&
+        ((hasImages && poll === null) ||
+            characterCount(body.trim()) >= minBodyLength) &&
         (poll === null ||
             poll.options.every((option) => option.trim().length > 0));
 
