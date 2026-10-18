@@ -95,6 +95,16 @@ const fixRestored = (key: string, next?: boolean): void => {
     }
 };
 
+const writeDraft = (key: string, next: string): void => {
+    if (!composers.has(key)) {
+        return;
+    }
+
+    fixRestored(key);
+    drafts.set(key, next);
+    notify();
+};
+
 const useDraftImages = (key: string) => {
     const draftImages = useSyncExternalStore(
         subscribe,
@@ -306,15 +316,7 @@ export function useStash(userId: string, name: string): UseStashReturn {
         () => draftFor(key),
         () => read(key),
     );
-    const setBody = (next: string): void => {
-        if (!composers.has(key)) {
-            return;
-        }
-
-        fixRestored(key);
-        drafts.set(key, next);
-        notify();
-    };
+    const setBody = (next: string): void => writeDraft(key, next);
     const dropCount = useSyncExternalStore(
         subscribe,
         () => drops.get(key) ?? 0,
@@ -349,7 +351,7 @@ export function useStash(userId: string, name: string): UseStashReturn {
 
     useEffect(() => {
         if (body !== '' && stashableBody(body) === '') {
-            setBody(body);
+            writeDraft(key, body);
             discardBody(key);
         }
     }, [body, key]);
