@@ -59,6 +59,7 @@
         "lightningcss-linux-x64-gnu": "^1.33.0"
     },
     "overrides": {
+        "react": "$react",
         "vite": "npm:@voidzero-dev/vite-plus-core@1.3.0"
     },
     "devEngines": {
