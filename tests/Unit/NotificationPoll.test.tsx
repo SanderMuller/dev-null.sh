@@ -99,7 +99,7 @@ await createInertiaApp({
     setup: ({ App, props }) => <App {...props} />,
 });
 
-test('polls and loads more for the filter on screen, not the remembered one', () => {
+test('polls and loads more with the filter on screen', () => {
     assert.equal(poll().data?.type, 'follows');
     assert.equal(scrollParams?.data?.type, 'follows');
 });
