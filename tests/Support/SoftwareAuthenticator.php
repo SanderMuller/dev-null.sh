@@ -84,7 +84,7 @@ final class SoftwareAuthenticator
         return (string) json_encode([
             'type' => $type,
             'challenge' => $challenge,
-            'origin' => $overrides['origin'] ?? $url->getScheme().'://'.$url->getAsciiHost(),
+            'origin' => $overrides['origin'] ?? $url->getScheme().'://'.$url->getAsciiHost().($url->getPort() !== null ? ':'.$url->getPort() : ''),
             'crossOrigin' => false,
         ], JSON_UNESCAPED_SLASHES);
     }
