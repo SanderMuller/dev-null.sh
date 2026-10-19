@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { test, vi } from 'vite-plus/test';
+import { TooltipProvider } from '../../resources/js/components/ui/tooltip';
 import type { NotificationGroup, User } from '../../resources/js/types';
 
 let poll: () => { only?: string[]; data?: Record<string, unknown> };
@@ -96,7 +97,11 @@ await createInertiaApp({
         />
     ),
     render: renderToString,
-    setup: ({ App, props }) => <App {...props} />,
+    setup: ({ App, props }) => (
+        <TooltipProvider>
+            <App {...props} />
+        </TooltipProvider>
+    ),
 });
 
 test('polls and loads more with the filter on screen', () => {
