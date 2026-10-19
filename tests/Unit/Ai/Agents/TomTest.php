@@ -89,6 +89,39 @@ it('remembers only the public ancestor branch with the correct speakers', functi
     expect(new Tom($question)->messages())->toBeEmpty();
 });
 
+it('reads the public commit quoted by the post that tags him', function (): void {
+    $bob = User::factory()->create(['username' => 'bob']);
+    $quoted = Commit::factory()->for($bob)->create(['body' => 'Can you share the audio file for the beep?']);
+    $question = Commit::factory()->create(['body' => '@tom ?', 'quoted_commit_id' => $quoted->id]);
+
+    expect(new Tom($question)->messages()->map(fn (Message $message): array => [$message->role->value, $message->content])->all())->toBe([
+        ['user', '@bob (quoted): Can you share the audio file for the beep?'],
+    ]);
+
+    $quoted->update(['status' => CommitStatus::Pending]);
+    expect(new Tom($question->fresh())->messages())->toBeEmpty();
+    $quoted->update(['status' => CommitStatus::Approved]);
+    $quoted->delete();
+
+    expect(new Tom($question->fresh())->messages())->toBeEmpty();
+});
+
+it('reads the public commit quoted by the top of the thread', function (): void {
+    $tom = User::factory()->create(['username' => 'tom', 'github_id' => CreateTomFriendship::GITHUB_ID]);
+    $alice = User::factory()->create(['username' => 'alice']);
+    $quoted = Commit::factory()->for($tom)->create(['body' => 'Welcome to dev/null!']);
+    $root = Commit::factory()->for($alice)->create(['body' => 'Look at this.', 'quoted_commit_id' => $quoted->id]);
+    $question = Commit::factory()->for($root, 'parent')->for($alice)->create(['body' => '@tom who wrote this?']);
+
+    expect(new Tom($question)->messages()->map(fn (Message $message): array => [$message->role->value, $message->content])->all())->toBe([
+        ['assistant', '@tom (quoted): Welcome to dev/null!'],
+        ['user', '@alice: Look at this.'],
+    ]);
+
+    $quoted->delete();
+    expect(new Tom($question)->messages()->pluck('content')->all())->toBe(['@alice: Look at this.']);
+});
+
 it('bounds history by both posts and characters and signals a nearly full window', function (int $length, int $expected): void {
     $user = User::factory()->create(['username' => 'alice']);
     $parent = null;
