@@ -11,7 +11,6 @@ use App\Ai\Tools\SearchCommits;
 use App\Ai\Tools\SearchKnowledgeBase;
 use App\Models\Commit;
 use App\Queries\CommitAncestorsQuery;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\MaxTokens;
@@ -58,7 +57,10 @@ final class Tom implements Agent, Conversational, HasProviderOptions, HasTools
     {
         $remaining = 12000 - mb_strlen($this->commit->body);
         $ancestors = resolve(CommitAncestorsQuery::class)->get($this->commit, null, limit: 12);
-        $quoted = ($ancestors->first() ?? $this->commit->loadMissing(['quotedCommit' => fn (BelongsTo $query): BelongsTo => $query->visibleTo(null)->with('user')]))->quotedCommit;
+        $top = $ancestors->first() ?? $this->commit;
+        $quoted = $top->parent_id === null && $top->quoted_commit_id !== null && ! $top->trashed()
+            ? Commit::query()->visibleTo(null)->with('user')->find($top->quoted_commit_id)
+            : null;
 
         return $ancestors
             ->when($quoted, fn (Collection $commits, Commit $quoted): Collection => $commits->prepend($quoted))

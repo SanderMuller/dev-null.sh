@@ -99,11 +99,11 @@ it('reads the public commit quoted by the post that tags him', function (): void
     ]);
 
     $quoted->update(['status' => CommitStatus::Pending]);
-    expect(new Tom($question->fresh())->messages())->toBeEmpty();
+    expect(new Tom($question)->messages())->toBeEmpty();
     $quoted->update(['status' => CommitStatus::Approved]);
     $quoted->delete();
 
-    expect(new Tom($question->fresh())->messages())->toBeEmpty();
+    expect(new Tom($question)->messages())->toBeEmpty();
 });
 
 it('reads the public commit quoted by the top of the thread', function (): void {
@@ -118,8 +118,29 @@ it('reads the public commit quoted by the top of the thread', function (): void 
         ['user', '@alice: Look at this.'],
     ]);
 
-    $quoted->delete();
+    $quoted->update(['status' => CommitStatus::Pending]);
     expect(new Tom($question)->messages()->pluck('content')->all())->toBe(['@alice: Look at this.']);
+    $quoted->update(['status' => CommitStatus::Approved]);
+    $quoted->delete();
+
+    expect(new Tom($question)->messages()->pluck('content')->all())->toBe(['@alice: Look at this.']);
+    $quoted->restore();
+    $root->delete();
+
+    expect(new Tom($question)->messages())->toBeEmpty();
+});
+
+it('drops the quote once the top of the thread is out of his window', function (): void {
+    $quoted = Commit::factory()->create(['body' => 'Tabs or spaces?']);
+    $parent = Commit::factory()->create(['quoted_commit_id' => $quoted->id]);
+    for ($index = 0; $index < 12; $index++) {
+        $parent = Commit::factory()->for($parent, 'parent')->create();
+    }
+
+    $question = Commit::factory()->for($parent, 'parent')->create(['body' => '@tom what did they quote?']);
+
+    expect(new Tom($question)->messages())->toHaveCount(12);
+    expect(new Tom($question)->messages()->pluck('content')->implode(' '))->not->toContain('Tabs or spaces?');
 });
 
 it('bounds history by both posts and characters and signals a nearly full window', function (int $length, int $expected): void {
